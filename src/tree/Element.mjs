@@ -1047,6 +1047,11 @@ export default class Element {
     }
 
     select(path) {
+        // target is already an object
+        if (typeof path !== 'string') {
+            return path || this;
+        }
+
         if (path.indexOf(",") !== -1) {
             let selectors = path.split(',');
             let res = [];

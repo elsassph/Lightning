@@ -141,7 +141,7 @@ declare namespace AnimationActionSettings {
    * for more information.
    */
   export interface Literal<Key, ValueType extends AnimatableValueTypes> {
-    // selector?: string;
+    // selector?: string | Element;
     // - Removed for same reasons as `properties` below
 
     /**
@@ -155,12 +155,10 @@ declare namespace AnimationActionSettings {
      *   - The Element you are calling `animation()` on will be animated.
      *
      * WARNING: Because it's impossible to make tag selection type-safe it is recommended
-     * you do not use `t` when using TypeScript. Instead, call `animation()` directly on
+     * to use a reference when using TypeScript, or call `animation()` directly on
      * each Element you wish to animate.
-     *
-     * @deprecated See note about type-safety in the Remarks section.
      */
-    t?: string;
+    t?: string | Element;
 
     // properties?: Key | Array<Key>;
     // - Removed because its duplicative and potentially error prone
