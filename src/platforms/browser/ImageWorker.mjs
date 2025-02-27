@@ -277,15 +277,20 @@ const createWorker = function() {
         this._xhr.responseType = "blob";
 
         var t = this;
-        this._xhr.onerror = function(oEvent) {
+        this._xhr.onerror = function() {
             t.error({type: "connection", message: "Connection error"});
         };
 
-        this._xhr.onload = function(oEvent) {
-            var blob = t._xhr.response;
-            t._mimeType = blob.type;
+        this._xhr.onload = function() {
+            var status = t._xhr.status;
+            if (status === 200) {
+                var blob = t._xhr.response;
+                t._mimeType = blob.type;
 
-            t._createImageBitmap(blob);
+                t._createImageBitmap(blob);
+            } else {
+                t.error({type: "status", message: "Request failed: " + status});
+            }
         };
 
         this._xhr.send();
