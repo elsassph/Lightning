@@ -26,147 +26,156 @@ window.attachInspector = function({Application, Element, ElementCore, Stage, Com
 
     window.mutationCounter = 0;
     window.mutatingChildren = false;
-    var observer = new MutationObserver(function(mutations) {
-        var fa = ["x", "y", "w", "h", "alpha", "mountX", "mountY", "pivotX", "pivotY", "scaleX", "scaleY", "rotation", "visible", "clipping", "rect", "colorUl", "colorUr", "colorBl", "colorBr", "color", "borderWidthLeft", "borderWidthRight", "borderWidthTop", "borderWidthBottom", "borderWidth", "borderColorLeft", "borderColorRight", "borderColorTop", "borderColorBottom", "borderColor", "zIndex", "forceZIndexContext", "renderToTexture", "renderToTextureLazy", "renderOffscreen", "colorizeResultTexture", "texture"];
-        var fac = fa.map(function(v) {return v.toLowerCase()});
+    const fa = ["x", "y", "w", "h", "alpha", "mountX", "mountY", "pivotX", "pivotY", "scaleX", "scaleY", "rotation", "visible", "clipping", "rect", "colorUl", "colorUr", "colorBl", "colorBr", "color", "borderWidthLeft", "borderWidthRight", "borderWidthTop", "borderWidthBottom", "borderWidth", "borderColorLeft", "borderColorRight", "borderColorTop", "borderColorBottom", "borderColor", "zIndex", "forceZIndexContext", "renderToTexture", "renderToTextureLazy", "renderOffscreen", "colorizeResultTexture", "texture"];
+    const fac = fa.map(v => v.toLowerCase());
 
-        mutations.forEach(function(mutation) {
-            if (mutation.type == 'childList') {
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+            const c = mutation.target.element;
+            
+            if (c.__ignore_attrib_changes === window.mutationCounter) {
+                // Ignore attribute changes that were caused by actual value modifications by js.
+                return;
+            }
+            
+            const n = mutation.attributeName.toLowerCase();
+            const v = mutation.target.getAttribute(mutation.attributeName);
 
-                var node = mutation.target;
-                var c = mutation.target.element;
+            if (n.startsWith("texture-")) {
+                if (c.displayedTexture) {
+                    const att = n.substring(8).split("_")
+                    const camelCaseAtt = att[0] + att.slice(1).map(a => {
+                        return a.substring(0, 1).toUpperCase() + a.substring(1).toLowerCase()
+                    }).join("")
+
+                    c.displayedTexture[camelCaseAtt] = v
+                }
+                return
             }
 
-            if (mutation.type == 'attributes' && mutation.attributeName !== 'style' && mutation.attributeName !== 'class') {
-                var n = mutation.attributeName.toLowerCase();
-                var c = mutation.target.element;
-
-                if (c.__ignore_attrib_changes === window.mutationCounter) {
-                    // Ignore attribute changes that were caused by actual value modifications by js.
-                    return;
-                }
-
-                var v = mutation.target.getAttribute(mutation.attributeName);
-
-                if (n.startsWith("texture-")) {
-                    if (c.displayedTexture) {
-                        const att = n.substr(8).split("_")
-                        const camelCaseAtt = att[0] + att.slice(1).map(a => {
-                            return a.substr(0,1).toUpperCase() + a.substr(1).toLowerCase()
-                        }).join()
-
-                        c.displayedTexture[camelCaseAtt] = v
-                    }
-                    return
-                }
-
-                var index = fac.indexOf(n);
-                if (index !== -1) {
-                    var rn = fa[index];
-                    var pv;
-                    try {
-                        if (v === null) {
-                            switch(rn) {
-                                case "pivotX":
-                                case "pivotY":
-                                    pv = 0.5;
-                                    break;
-                                case "alpha":
-                                case "scaleX":
-                                case "scaleY":
-                                    pv = 1;
-                                    break;
-                                case "visible":
-                                    pv = true;
-                                    break;
-                                case "clipping":
-                                    pv = false;
-                                    break;
-                                case "rect":
-                                    pv = false;
-                                    break;
-                                case "zIndex":
-                                    pv = 0;
-                                    break;
-                                case "forceZIndexContext":
-                                    pv = false;
-                                    break;
-                                case "color":
-                                    pv = 0xffffffff;
-                                    break;
-                                case "colorUl":
-                                case "colorUr":
-                                case "colorBl":
-                                case "colorBr":
-                                    if (mutation.target.hasAttribute("color")) {
-                                        // This may happen when the separate values are combined.
-                                        return;
-                                    }
-                                    pv = 0xffffffff;
-                                    break;
-                                case "renderToTexture":
-                                    pv = false
-                                    break;
-                                case "renderToTextureLazy":
-                                    pv = false
-                                    break;
-                                case "renderOffscreen":
-                                    pv = false
-                                    break;
-                                case "colorizeResultTexture":
-                                    pv = false
-                                    break;
-                                default:
-                                    pv = 0;
-                            }
-                        } else {
-                            switch(rn) {
-                                case "color":
-                                case "colorUl":
-                                case "colorUr":
-                                case "colorBl":
-                                case "colorBr":
-                                    pv = parseInt(v, 16);
-                                    break;
-                                case "visible":
-                                case "clipping":
-                                case "rect":
-                                case "forceZIndexContext":
-                                case "renderToTexture":
-                                case "renderToTextureLazy":
-                                case "renderOffscreen":
-                                case "colorizeResultTexture":
-                                    pv = (v === "true");
-                                    break;
-                                case "texture":
-                                    pv = JSON.parse(v)
-                                    break
-                                default:
-                                    pv = parseFloat(v);
-                                    if (isNaN(pv)) throw "e";
-                            }
-                        }
-
-                        var fv;
+            const index = fac.indexOf(n);
+            if (index !== -1) {
+                const rn = fa[index];
+                let pv;
+                try {
+                    if (v === null) {
                         switch(rn) {
+                            case "pivotX":
+                            case "pivotY":
+                                pv = 0.5;
+                                break;
+                            case "alpha":
+                            case "scaleX":
+                            case "scaleY":
+                                pv = 1;
+                                break;
+                            case "visible":
+                                pv = true;
+                                break;
+                            case "clipping":
+                                pv = false;
+                                break;
+                            case "rect":
+                                pv = false;
+                                break;
+                            case "zIndex":
+                                pv = 0;
+                                break;
+                            case "forceZIndexContext":
+                                pv = false;
+                                break;
                             case "color":
-                                var f = ['colorUl','colorUr','colorBl','colorBr'].map(function(q) {
-                                    return mutation.target.hasAttribute(q);
-                                });
-
-                                if (!f[0]) c["colorUl"] = pv;
-                                if (!f[1]) c["colorUr"] = pv;
-                                if (!f[2]) c["colorBl"] = pv;
-                                if (!f[3]) c["colorBr"] = pv;
+                                pv = 0xffffffff;
+                                break;
+                            case "colorUl":
+                            case "colorUr":
+                            case "colorBl":
+                            case "colorBr":
+                                if (mutation.target.hasAttribute("color")) {
+                                    // This may happen when the separate values are combined.
+                                    return;
+                                }
+                                pv = 0xffffffff;
+                                break;
+                            case "renderToTexture":
+                                pv = false
+                                break;
+                            case "renderToTextureLazy":
+                                pv = false
+                                break;
+                            case "renderOffscreen":
+                                pv = false
+                                break;
+                            case "colorizeResultTexture":
+                                pv = false
                                 break;
                             default:
-                                c[rn] = pv;
+                                pv = 0;
                         }
-
-                        // Set final value, not the transitioned value.
-                    } catch(e) {
-                        console.error('Bad (ignored) attribute value', rn);
+                    } else {
+                        switch(rn) {
+                            case "color":
+                            case "colorUl":
+                            case "colorUr":
+                            case "colorBl":
+                            case "colorBr":
+                                pv = parseInt(v, 16);
+                                break;
+                            case "visible":
+                            case "clipping":
+                            case "rect":
+                            case "forceZIndexContext":
+                            case "renderToTexture":
+                            case "renderToTextureLazy":
+                            case "renderOffscreen":
+                            case "colorizeResultTexture":
+                                pv = (v === "true");
+                                break;
+                            case "texture":
+                                pv = JSON.parse(v)
+                                break
+                            default:
+                                pv = parseFloat(v);
+                                if (isNaN(pv)) throw "e";
+                        }
                     }
+
+                    switch(rn) {
+                        case "color":
+                            const f = ['colorUl','colorUr','colorBl','colorBr'].map(q => mutation.target.hasAttribute(q));
+
+                            if (!f[0]) c["colorUl"] = pv;
+                            if (!f[1]) c["colorUr"] = pv;
+                            if (!f[2]) c["colorBl"] = pv;
+                            if (!f[3]) c["colorBr"] = pv;
+                            break;
+                        case "x":
+                            const layoutX = c.__core.layout; // flex layout
+                            if (layoutX) {
+                                if (pv !== c.finalX) {
+                                    c.x = layoutX.originalX + (pv - c.finalX);
+                                }
+                            } else {
+                                c.x = pv;
+                            }
+                            break;
+                        case "y":
+                            const layoutY = c.__core.layout; // flex layout
+                            if (layoutY) {
+                                if (pv !== c.finalY) {
+                                    c.y = layoutY.originalY + (pv - c.finalY);
+                                }
+                            } else {
+                                c.y = pv;
+                            }
+                            break;
+                        default:
+                            c[rn] = pv;
+                    }
+
+                    // Set final value, not the transitioned value.
+                } catch(e) {
+                    console.error('Bad (ignored) attribute value', rn);
                 }
             }
         });
@@ -186,7 +195,6 @@ window.attachInspector = function({Application, Element, ElementCore, Stage, Com
             this.debugElement.style.position = 'absolute';
 
             this.debugElement.id = "" + this.id;
-            observer.observe(this.debugElement, {attributes: true});
         }
         if (this.stage.root === this && !this.dhtml_root) {
             // Root element.
@@ -221,6 +229,9 @@ window.attachInspector = function({Application, Element, ElementCore, Stage, Com
             root.appendChild(this.debugElement);
 
             this.dhtml_root = root;
+            
+            // single mutation observer
+            observer.observe(root, {attributes: true, attributeFilter: fac, subtree: true});
         }
         return this.debugElement;
     };
